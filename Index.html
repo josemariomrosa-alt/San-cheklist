@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAN — Checklist Fecho de Contas 2025</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f4f3ef;color:#1a1a18;min-height:100vh}
+.header{background:#1a3a2a;color:#fff;padding:18px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;position:sticky;top:0;z-index:100}
+.header h1{font-size:17px;font-weight:600}
+.header p{font-size:11px;opacity:0.65;margin-top:2px}
+.header-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.header button{font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.35);background:transparent;color:#fff;cursor:pointer}
+.header button:hover{background:rgba(255,255,255,0.1)}
+.sync-status{font-size:11px;padding:4px 10px;border-radius:8px;display:flex;align-items:center;gap:5px}
+.sync-status.ok{background:rgba(255,255,255,0.1);color:#a8f0c0}
+.sync-status.saving{background:rgba(255,255,255,0.1);color:#ffd97a}
+.sync-status.error{background:rgba(220,50,50,0.3);color:#ffaaaa}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+.month-bar{background:#fff;border-bottom:1px solid #e0ded8;padding:0 32px;display:flex;gap:0;overflow-x:auto}
+.month-tab{padding:10px 16px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:3px solid transparent;color:#888;white-space:nowrap;transition:all 0.15s}
+.month-tab:hover{color:#1a3a2a}
+.month-tab.active{color:#1a3a2a;border-bottom-color:#1a3a2a}
+.month-tab .dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:5px;background:#ccc;vertical-align:middle}
+.month-tab .dot.has-data{background:#1a7a40}
+.month-tab .dot.full{background:#1a7a40}
+
+.main{max-width:920px;margin:0 auto;padding:24px 20px}
+
+.loading-overlay{position:fixed;inset:0;background:rgba(244,243,239,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:14px}
+.spinner{width:36px;height:36px;border:3px solid #e0ded8;border-top-color:#1a3a2a;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay p{font-size:13px;color:#666}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat{background:#fff;border-radius:10px;padding:14px 16px;border:1px solid #e0ded8}
+.stat-label{font-size:11px;color:#888;margin-bottom:4px}
+.stat-num{font-size:26px;font-weight:600;color:#1a1a18}
+.stat-num.green{color:#1a7a40}
+.stat-num.amber{color:#c97b00}
+.stat-num.red{color:#c0392b}
+.progress-bar{height:6px;background:#e8e6e0;border-radius:3px;margin-top:8px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:#1a7a40;transition:width 0.5s ease}
+
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.filter-btns{display:flex;gap:8px;flex-wrap:wrap}
+.filter-btn{font-size:12px;padding:5px 14px;border-radius:20px;border:1px solid #ccc;background:#fff;color:#555;cursor:pointer;transition:all 0.15s}
+.filter-btn.active{background:#1a3a2a;color:#fff;border-color:#1a3a2a}
+.reset-btn{font-size:12px;padding:5px 14px;border-radius:20px;border:1px solid #e0a0a0;background:#fff;color:#c0392b;cursor:pointer}
+.reset-btn:hover{background:#fde8e8}
+
+.section-block{background:#fff;border:1px solid #e0ded8;border-radius:12px;margin-bottom:10px;overflow:hidden}
+.section-header{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;background:#f9f8f5;user-select:none}
+.section-header:hover{background:#f0efe8}
+.chevron{font-size:11px;color:#888;transition:transform 0.2s;flex-shrink:0}
+.chevron.open{transform:rotate(90deg)}
+.section-title{font-size:13px;font-weight:600;flex:1;color:#1a1a18}
+.section-progress{font-size:11px;color:#888;white-space:nowrap}
+.section-badge{font-size:11px;padding:2px 9px;border-radius:10px;font-weight:500;white-space:nowrap}
+.badge-ok{background:#d4f0df;color:#1a7a40}
+.badge-pend{background:#fff3cd;color:#c97b00}
+.badge-no{background:#fde8e8;color:#c0392b}
+
+.items-list{display:none;padding:0 0 6px}
+.items-list.open{display:block}
+.item-row{display:grid;grid-template-columns:32px 1fr auto;align-items:start;gap:10px;padding:8px 16px;border-top:1px solid #f0efe8}
+.checkbox{width:20px;height:20px;border:1.5px solid #bbb;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;transition:all 0.15s}
+.checkbox:hover{border-color:#1a7a40}
+.checkbox.checked{background:#1a7a40;border-color:#1a7a40}
+.checkbox.checked::after{content:'';display:block;width:6px;height:10px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px)}
+.checkbox.loading{opacity:0.4;pointer-events:none}
+.item-text{font-size:13px;color:#1a1a18;line-height:1.45}
+.item-resp{font-size:11px;color:#888;margin-top:2px}
+.item-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;padding-top:2px}
+.item-deadline{font-size:10px;padding:2px 8px;border-radius:8px;white-space:nowrap;background:#e8f0fe;color:#1a56a0;font-weight:500}
+.empty-msg{text-align:center;padding:40px;color:#aaa;font-size:13px}
+
+@media print{
+  .header{position:static;background:#1a3a2a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .month-bar,.filter-row,.sync-status,.header button{display:none}
+  .items-list{display:block!important}
+  .section-block{break-inside:avoid}
+}
+@media(max-width:600px){
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .header{padding:14px 16px}
+  .month-bar{padding:0 16px}
+  .main{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p>A carregar dados da equipa...</p>
+</div>
+
+<div class="header">
+  <div>
+    <h1>Checklist Fecho de Contas — SAN 2025</h1>
+    <p>Sociedade Algodoeira do Niassa · Departamento Financeiro</p>
+  </div>
+  <div class="header-right">
+    <div class="sync-status ok" id="syncStatus"><span class="sync-dot"></span><span id="syncText">Ligado</span></div>
+    <button onclick="window.print()">Imprimir</button>
+  </div>
+</div>
+
+<div class="month-bar" id="monthBar"></div>
+
+<div class="main">
+  <div class="stats-row" id="statsRow"></div>
+  <div class="filter-row">
+    <div class="filter-btns">
+      <button class="filter-btn active" onclick="setFilter('all',this)">Todos</button>
+      <button class="filter-btn" onclick="setFilter('pending',this)">Por Concluir</button>
+      <button class="filter-btn" onclick="setFilter('done',this)">Concluídos</button>
+    </div>
+    <button class="reset-btn" onclick="resetMonth()">Limpar mês</button>
+  </div>
+  <div id="sectionsArea"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://rtxcpprvtxetdernxosh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0eGNwcHJ2dHhldGRlcm54b3NoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NjU1NzIsImV4cCI6MjA5MzU0MTU3Mn0.i4R8VeT8UzaYmwxAU7Ift1JWtU4ISD1eebpyXP_Gx2A';
+const HEADERS = {'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY};
+
+const MONTHS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const TOTAL_ITEMS = 78;
+
+const SECTIONS = [
+  {id:'caixa',label:'Caixa',items:[
+    {text:'Caixa Fundo Fixo',resp:'Custodio',deadline:'Dia 5'},
+    {text:'Caixa Compra algodão caroço',resp:'JR/Custodio',deadline:'Dia 10'},
+    {text:'Caixa Nacala',resp:'Fredson',deadline:'Dia 5'},
+    {text:'Caixa de comercialização de milho e soja',resp:'Dercio/Orlando/Julio/Fredson',deadline:'Dia 5'},
+  ]},
+  {id:'bancos',label:'Bancos',items:[
+    {text:'Todos os Pagamentos integralmente registados',resp:'Fredson/Custodio/Tesouraria',deadline:'Dia 5'},
+    {text:'Todos os Recebimentos integralmente registados',resp:'Fredson/Custodio/Orlando/Tesouraria',deadline:'Dia 5'},
+    {text:'Confirmação sobre contas bancárias constituídas ou encerradas',resp:'José Rosa/Ricardo',deadline:'—'},
+    {text:'Borderauxs Exportação recolhidos e entregues na contabilidade',resp:'Tesouraria',deadline:'—'},
+    {text:'Saldos em moeda estrangeira actualizados ao câmbio BIM',resp:'Fredson/Custodio',deadline:'Dia 25'},
+    {text:'Todas as Contas bancárias reconciliadas',resp:'JR/Custodio',deadline:'Dia 25'},
+    {text:'Contas a prazo reconciliadas em qualquer moeda',resp:'JR/Custodio',deadline:'Dia 25'},
+    {text:'Todas as confirmações de saldos bancários obtidas',resp:'Tesouraria/Custodio',deadline:'Dia 25'},
+    {text:'Reconciliações bancárias validadas e arquivadas',resp:'JR/Custodio',deadline:'Dia 25'},
+    {text:'Foram respondidos todos os pendentes bancários',resp:'Fredson/Custodio',deadline:'Dia 25'},
+  ]},
+  {id:'compras',label:'Compras',items:[
+    {text:'Compras de milho e Soja devidamente lançadas e reconciliadas',resp:'Fredson',deadline:'Dia 25'},
+    {text:'Compras de insumos, matérias auxiliares e embalagens reconciliadas',resp:'Custodio',deadline:'Dia 25'},
+    {text:'Custos inerentes às compras (transporte + custos não desembolsáveis) contabilizados',resp:'Custodio',deadline:'Dia 25'},
+  ]},
+  {id:'stocks',label:'Stocks e Custo das Vendas',items:[
+    {text:'Contagens feitas, assinadas e reconciliadas com Primavera e Balancete',resp:'Custodio/Fredson/José',deadline:'Dia 5'},
+    {text:'Todos os items contados foram valorizados',resp:'Custodio/Fredson/José',deadline:'Dia 5'},
+    {text:'Todos os ajustamentos feitos e devidamente autorizados',resp:'Custodio/José',deadline:'Dia 5'},
+    {text:'Cálculo da conta 61 feito e validado',resp:'Custodio/José',deadline:'Dia 26'},
+  ]},
+  {id:'imob',label:'Imobilizado',items:[
+    {text:'Contas do Imobilizado reflectem os activos detidos pela empresa',resp:'José Rosa',deadline:'Dia 26'},
+    {text:'Conta 65 reflecte a totalidade das amortizações',resp:'José Rosa',deadline:'Dia 26'},
+    {text:'Conta 38 reflecte amortizações acumuladas à data do fecho',resp:'José Rosa',deadline:'Dia 26'},
+    {text:'Mapa de amortizações cruza com a Contabilidade',resp:'José Rosa',deadline:'Dia 26'},
+    {text:'Conta do imobilizado em curso reflecte as obras à data do fecho',resp:'José Rosa',deadline:'Dia 26'},
+    {text:'Verificar reavaliação dos activos e implicações fiscais',resp:'José Rosa',deadline:'Dia 26'},
+    {text:'Mapa de adições e alienações preparado, validado e cruza com Balancete',resp:'José Rosa',deadline:'Dia 26'},
+  ]},
+  {id:'clientes',label:'Clientes',items:[
+    {text:'Facturas emitidas no Primavera cruzam com o Balancete',resp:'Custodio/Fredson',deadline:'Dia 15'},
+    {text:'Idade de saldos de clientes conforme os saldos no Balancete',resp:'Custodio/Fredson',deadline:'—'},
+    {text:'Saldos de clientes representam os valores devidos à data do fecho',resp:'Custodio',deadline:'Dia 15'},
+    {text:'Conta adiantamento de clientes reflecte valores recebidos ainda não fornecidos',resp:'Custodio/Dércio',deadline:'Dia 15'},
+    {text:'Circularização e reconciliações assinadas e validadas a 31.12',resp:'José Rosa',deadline:'—'},
+  ]},
+  {id:'fornec',label:'Fornecedores',items:[
+    {text:'Saldos de fornecedores reflectem valores devidos à data do fecho',resp:'Custodio/Fredson',deadline:'Dia 25'},
+    {text:'Conta adiantamentos a fornecedores reflecte bens não fornecidos',resp:'Custodio/Fredson',deadline:'Dia 25'},
+    {text:'Circularização e reconciliações assinadas e validadas a 31.12',resp:'José',deadline:'—'},
+  ]},
+  {id:'emp',label:'Empréstimos',items:[
+    {text:'Saldo da CCC reflecte os valores recebidos e amortizados',resp:'JR/Custodio',deadline:'Dia 27'},
+    {text:'Saldos da CCC do BIM integralmente reconciliados',resp:'JR/Custodio',deadline:'Dia 27'},
+  ]},
+  {id:'impostos',label:'Estado / Impostos',items:[
+    {text:'Processado e pago o IRPC',resp:'JR/Custodio',deadline:'31-05'},
+    {text:'IVAs mensais processados, submetidos às Finanças e cruzam com Balancete',resp:'Custodio',deadline:'Dia 15'},
+    {text:'Submetido o Modelo 22',resp:'JR/Custodio',deadline:'31-05'},
+    {text:'Submetido o Modelo 20 e seus anexos',resp:'JR/Custodio',deadline:'30-06'},
+    {text:'Pago o Pagamento por conta',resp:'JR/Custodio',deadline:'31-05'},
+    {text:'Pago o Pagamento especial por conta',resp:'JR/Custodio',deadline:'—'},
+    {text:'Contas de reembolso reflectem pedidos submetidos e validados',resp:'Siaque',deadline:'—'},
+    {text:'Guias do INSS e IRPS pagas e cruzam com o Balancete',resp:'JR/Custodio',deadline:'Dia 10'},
+  ]},
+  {id:'devedor',label:'Outros Devedores',items:[
+    {text:'Conta Diversos Produtores detalhada e reflecte saldo no Balancete',resp:'José Rosa',deadline:'—'},
+    {text:'Saldos dos trabalhadores reflectem valores devidos e conformes RH',resp:'Custodio/Fredson',deadline:'Dia 25'},
+    {text:'Saldos das empresas do Grupo reconciliados e circularizados',resp:'Custodio/Fredson',deadline:'31-12'},
+  ]},
+  {id:'credores',label:'Outros Credores',items:[
+    {text:'Saldos de outros credores circularizados, reconciliados e reflectem valores por pagar',resp:'Custodio/Fredson',deadline:'Dia 25'},
+    {text:'Saldos das empresas do Grupo reconciliados e circularizados intra-Grupo',resp:'Custodio/Fredson',deadline:'31-12'},
+  ]},
+  {id:'impar',label:'Imparidades',items:[
+    {text:'Imparidades de clientes e outros devedores validadas',resp:'JR',deadline:'—'},
+  ]},
+  {id:'acr',label:'Acréscimos e Diferimentos',items:[
+    {text:'Acréscimos de custos/proveitos e especializações devidamente validados',resp:'JR',deadline:'—'},
+    {text:'Circularização e reconciliações assinadas a 31.12',resp:'Custodio',deadline:'31-12'},
+  ]},
+  {id:'cmv',label:'61 - CMV/CMVC',items:[
+    {text:'Conta 61 reflecte consumo de insumos e materiais directos durante a campanha',resp:'JR/Custódio',deadline:'Dia 27'},
+    {text:'Conta 61 reflecte outros custos directos (transporte, expedição, fábrica)',resp:'JR/Custódio',deadline:'Dia 27'},
+  ]},
+  {id:'sal',label:'Salários',items:[
+    {text:'Remunerações validadas e cruzam com Primavera / Folha de Salários',resp:'JR/Jacinta',deadline:'Dia 27'},
+    {text:'Estimativa para bónus e outras remunerações não pagas contabilizada',resp:'JR',deadline:'—'},
+    {text:'13º processado, especializado e Pago',resp:'JR/Custódio',deadline:'—'},
+    {text:'Contas de remunerações reflectem totalidade dos trabalhadores das folhas',resp:'JR/Custódio',deadline:'—'},
+    {text:'Pagamentos de eventuais expurgados e reclassificados para conta 61',resp:'JR/Custódio',deadline:'—'},
+  ]},
+  {id:'fse',label:'FSE',items:[
+    {text:'Custos capitalizáveis ao Imobilizado expurgados do FSE',resp:'Custodio/Fredson',deadline:'—'},
+    {text:'Custos de Transporte de insumos capitalizados nas contas de compras',resp:'Custodio/Fredson',deadline:'—'},
+    {text:'Custos de transporte de algodão caroço capitalizados na conta de compras',resp:'Custodio/Fredson',deadline:'—'},
+    {text:'Custos FOB expurgados e reclassificados na conta 61',resp:'Custodio/Fredson',deadline:'—'},
+    {text:'Custos IAM e de Expedição lançados e reclassificados para conta 61',resp:'Custodio/Fredson',deadline:'—'},
+    {text:'Custos de Energia Fábrica reclassificados para conta 61',resp:'Custodio/Fredson',deadline:'—'},
+    {text:'Custos directos à compra do Imobilizado dos Projectos reclassificados',resp:'Custodio/Fredson',deadline:'—'},
+  ]},
+  {id:'ogop',label:'Outros Gastos Operacionais',items:[
+    {text:'Conta IAM analisada para reclassificar da conta 68 para conta 61',resp:'JR/Custódio',deadline:'—'},
+  ]},
+  {id:'fin',label:'Gastos e Perdas Financeiras',items:[
+    {text:'Conta de juros da CCC analisada e reflecte valores da taxa de juro',resp:'JR/Custódio',deadline:'Dia 27'},
+  ]},
+  {id:'vendas',label:'Vendas',items:[
+    {text:'Vendas reflectem facturas, Notas de Débito/Crédito, Devoluções e Descontos emitidos',resp:'Custodio/Fredson',deadline:'Dia 15'},
+    {text:'Verificado que não há emissão de facturas duplicadas nas Vendas',resp:'Custodio/Fredson',deadline:'Dia 15'},
+    {text:'Reconciliação da conta de vendas com o Primavera',resp:'Custodio/Fredson',deadline:'Dia 15'},
+  ]},
+  {id:'out_rend',label:'Outros Rendimentos e Ganhos',items:[
+    {text:'Os donativos estão todos contabilizados',resp:'JR/Custódio',deadline:'Dia 27'},
+  ]},
+  {id:'rend_fin',label:'Rendimento Financeiro',items:[
+    {text:'Custos de juros de depósito a prazo especializados quando não pagos no período',resp:'Custodio/Reis',deadline:'Dia 27'},
+  ]},
+  {id:'fp',label:'Fundos Próprios',items:[
+    {text:'Implicações contabilísticas das deliberações da Assembleia Geral reflectidas',resp:'Siaque',deadline:'—'},
+    {text:'Mapa demonstrativo das variações verificadas elaborado',resp:'Siaque',deadline:'—'},
+  ]},
+  {id:'si',label:'Saldos Iniciais',items:[
+    {text:'Todos os saldos (2022) foram validados',resp:'Custódio',deadline:'—'},
+  ]},
+  {id:'proj',label:'Projectos',items:[
+    {text:'Transacções do PROJECTO DA FÁBRICA DO ÓLEO devidamente lançados',resp:'JR/Custodio',deadline:'Dia 5'},
+    {text:'Transacções do PROJECTO DOS PAINEIS SOLARES devidamente lançados',resp:'JR/Custodio',deadline:'Dia 5'},
+    {text:'Transacções do PROJECTO DE GERAÇÃO DE RENDA (PGR) devidamente lançados',resp:'JR/Custodio',deadline:'Dia 5'},
+    {text:'Transacções do PROJECTO BCI devidamente lançados',resp:'JR/Custodio',deadline:'Dia 5'},
+  ]},
+  {id:'intragrp',label:'Reconciliações Intra Grupo',items:[
+    {text:'Validar as reconciliações com as empresas do Grupo',resp:'Custodio',deadline:'A cada 3 meses'},
+  ]},
+  {id:'audit',label:'Pedidos de Auditoria',items:[
+    {text:'Foram satisfeitos todos os pedidos de auditoria',resp:'JR/Custodio',deadline:'—'},
+  ]},
+  {id:'fecho',label:'Fecho do Ano',items:[
+    {text:'Impostos diferidos, contabilização amortização da reavaliação',resp:'JR/Custodio',deadline:'—'},
+  ]},
+];
+
+// ── State ─────────────────────────────────────────────────────────────
+let dbState = {}; // { "mes-secId-itemIdx": 0|1 }
+let currentMonth = new Date().getMonth();
+let filterMode = 'all';
+let openSections = {};
+let syncTimer = null;
+
+function stateKey(mes, secId, idx) { return `${mes}-${secId}-${idx}`; }
+function getStatus(mes, secId, idx) { return dbState[stateKey(mes,secId,idx)] || 0; }
+function setStatus(mes, secId, idx, val) { dbState[stateKey(mes,secId,idx)] = val; }
+
+function countDoneForMonth(mes) {
+  return SECTIONS.reduce((a,s) => a + s.items.filter((_,i) => getStatus(mes,s.id,i)===1).length, 0);
+}
+
+// ── Supabase API ──────────────────────────────────────────────────────
+function setSyncStatus(state, text) {
+  const el = document.getElementById('syncStatus');
+  const tx = document.getElementById('syncText');
+  el.className = 'sync-status ' + state;
+  tx.textContent = text;
+}
+
+async function loadAllFromDB() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/checklist?select=mes,sec_id,item_idx,status`, {headers: HEADERS});
+    if (!res.ok) throw new Error('Erro a carregar');
+    const rows = await res.json();
+    dbState = {};
+    rows.forEach(r => { dbState[stateKey(r.mes, r.sec_id, r.item_idx)] = r.status; });
+    setSyncStatus('ok','Ligado');
+  } catch(e) {
+    setSyncStatus('error','Sem ligação');
+  }
+}
+
+async function upsertItem(mes, secId, itemIdx, status) {
+  setSyncStatus('saving','A guardar...');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/checklist`, {
+      method: 'POST',
+      headers: {...HEADERS, 'Prefer': 'resolution=merge-duplicates'},
+      body: JSON.stringify({mes, sec_id: secId, item_idx: itemIdx, status, updated_at: new Date().toISOString()})
+    });
+    if (!res.ok) throw new Error('Erro ao guardar');
+    setSyncStatus('ok','Guardado ✓');
+    setTimeout(()=>setSyncStatus('ok','Ligado'), 2000);
+  } catch(e) {
+    setSyncStatus('error','Erro ao guardar');
+  }
+}
+
+async function deleteMonth(mes) {
+  setSyncStatus('saving','A limpar...');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/checklist?mes=eq.${mes}`, {
+      method: 'DELETE', headers: HEADERS
+    });
+    if (!res.ok) throw new Error();
+    setSyncStatus('ok','Mês limpo ✓');
+    setTimeout(()=>setSyncStatus('ok','Ligado'), 2000);
+  } catch(e) {
+    setSyncStatus('error','Erro ao limpar');
+  }
+}
+
+// Auto-refresh every 30 seconds to pick up changes from teammates
+setInterval(async () => {
+  await loadAllFromDB();
+  renderMonthBar();
+  renderStats();
+  renderSections();
+}, 30000);
+
+// ── Month bar ─────────────────────────────────────────────────────────
+function renderMonthBar() {
+  document.getElementById('monthBar').innerHTML = MONTHS.map((m,i) => {
+    const done = countDoneForMonth(i);
+    const full = done === TOTAL_ITEMS;
+    const hasData = done > 0;
+    return `<div class="month-tab ${i===currentMonth?'active':''}" onclick="switchMonth(${i})">
+      ${m}<span class="dot ${full?'full':hasData?'has-data':''}"></span></div>`;
+  }).join('');
+}
+
+function switchMonth(idx) {
+  currentMonth = idx;
+  openSections = {};
+  renderMonthBar();
+  renderStats();
+  renderSections();
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────
+function renderStats() {
+  const done = countDoneForMonth(currentMonth);
+  const pct = Math.round(done/TOTAL_ITEMS*100);
+  const pending = TOTAL_ITEMS - done;
+  const secDone = SECTIONS.filter(s => s.items.every((_,i)=>getStatus(currentMonth,s.id,i)===1)).length;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat"><div class="stat-label">Progresso — ${MONTHS[currentMonth]}</div>
+      <div class="stat-num ${pct>=75?'green':pct>=40?'amber':'red'}">${pct}%</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div>
+    <div class="stat"><div class="stat-label">Tarefas Concluídas</div><div class="stat-num green">${done}</div></div>
+    <div class="stat"><div class="stat-label">Por Concluir</div><div class="stat-num ${pending>10?'red':'amber'}">${pending}</div></div>
+    <div class="stat"><div class="stat-label">Secções Completas</div><div class="stat-num">${secDone} / ${SECTIONS.length}</div></div>`;
+}
+
+// ── Filter ────────────────────────────────────────────────────────────
+function setFilter(mode, btn) {
+  filterMode = mode;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSections();
+}
+
+// ── Toggle ────────────────────────────────────────────────────────────
+async function toggleItem(secId, itemIdx) {
+  const cur = getStatus(currentMonth, secId, itemIdx);
+  const newVal = cur===1 ? 0 : 1;
+  setStatus(currentMonth, secId, itemIdx, newVal);
+
+  // Update checkbox immediately (optimistic UI)
+  const cb = document.querySelector(`[data-cb="${secId}-${itemIdx}"]`);
+  if (cb) { cb.className = 'checkbox loading ' + (newVal===1?'checked':''); }
+
+  await upsertItem(currentMonth, secId, itemIdx, newVal);
+
+  if (cb) cb.className = 'checkbox ' + (newVal===1?'checked':'');
+  renderStats();
+  renderMonthBar();
+  updateSectionBadge(secId);
+  if (filterMode !== 'all') renderSections();
+}
+
+function toggleSection(id) {
+  openSections[id] = !openSections[id];
+  document.querySelector(`[data-sec="${id}"] .items-list`).classList.toggle('open', !!openSections[id]);
+  document.querySelector(`[data-sec="${id}"] .chevron`).classList.toggle('open', !!openSections[id]);
+}
+
+function updateSectionBadge(secId) {
+  const sec = SECTIONS.find(s=>s.id===secId);
+  const done = sec.items.filter((_,i)=>getStatus(currentMonth,secId,i)===1).length;
+  const total = sec.items.length;
+  const pct = Math.round(done/total*100);
+  const el = document.querySelector(`[data-sec="${secId}"] .section-badge`);
+  const pr = document.querySelector(`[data-sec="${secId}"] .section-progress`);
+  if (el){ el.className='section-badge '+(pct===100?'badge-ok':pct>0?'badge-pend':'badge-no'); el.textContent=pct===100?'Completo':pct>0?pct+'%':'Pendente'; }
+  if (pr) pr.textContent=`${done}/${total}`;
+}
+
+async function resetMonth() {
+  if (!confirm(`Limpar todo o progresso de ${MONTHS[currentMonth]}?`)) return;
+  SECTIONS.forEach(s => s.items.forEach((_,i) => setStatus(currentMonth,s.id,i,0)));
+  await deleteMonth(currentMonth);
+  renderMonthBar(); renderStats(); renderSections();
+}
+
+// ── Sections ──────────────────────────────────────────────────────────
+function renderSections() {
+  let html = '';
+  SECTIONS.forEach(sec => {
+    const done = sec.items.filter((_,i)=>getStatus(currentMonth,sec.id,i)===1).length;
+    const total = sec.items.length;
+    const pct = Math.round(done/total*100);
+    const isOpen = !!openSections[sec.id];
+    const allItems = sec.items.map((item,i)=>({item,i}));
+    const visItems = filterMode==='done' ? allItems.filter(({i})=>getStatus(currentMonth,sec.id,i)===1)
+      : filterMode==='pending' ? allItems.filter(({i})=>getStatus(currentMonth,sec.id,i)===0)
+      : allItems;
+    if (filterMode!=='all' && visItems.length===0) return;
+    const bc = pct===100?'badge-ok':pct>0?'badge-pend':'badge-no';
+    const bl = pct===100?'Completo':pct>0?`${pct}%`:'Pendente';
+    let ihtml = '';
+    visItems.forEach(({item,i}) => {
+      const checked = getStatus(currentMonth,sec.id,i)===1;
+      ihtml += `<div class="item-row">
+        <div class="checkbox ${checked?'checked':''}" data-cb="${sec.id}-${i}" onclick="toggleItem('${sec.id}',${i})"></div>
+        <div><div class="item-text">${item.text}</div><div class="item-resp">${item.resp}</div></div>
+        <div class="item-meta">${item.deadline!=='—'?`<span class="item-deadline">${item.deadline}</span>`:''}</div>
+      </div>`;
+    });
+    html += `<div class="section-block" data-sec="${sec.id}">
+      <div class="section-header" onclick="toggleSection('${sec.id}')">
+        <span class="chevron ${isOpen?'open':''}">&#9654;</span>
+        <span class="section-title">${sec.label}</span>
+        <span class="section-progress">${done}/${total}</span>
+        <span class="section-badge ${bc}">${bl}</span>
+      </div>
+      <div class="items-list ${isOpen?'open':''}">${ihtml}</div>
+    </div>`;
+  });
+  if (!html) html = '<div class="empty-msg">Nenhuma tarefa nesta categoria para mostrar.</div>';
+  document.getElementById('sectionsArea').innerHTML = html;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+(async () => {
+  await loadAllFromDB();
+  document.getElementById('loadingOverlay').style.display = 'none';
+  renderMonthBar();
+  renderStats();
+  renderSections();
+})();
+</script>
+</body>
+</html>
